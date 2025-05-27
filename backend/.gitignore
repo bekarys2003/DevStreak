@@ -1,0 +1,30 @@
+# Python
+__pycache__/
+*.py[cod]
+*.sqlite3
+*.log
+*.pot
+*.pyc
+
+# Django
+db.sqlite3
+*.env
+
+# Virtualenv
+venv/
+env/
+
+# VSCode or IDEs
+.vscode/
+.idea/
+
+# Docker
+*.pid
+*.db
+*.sock
+*.tar
+*.pid
+celerybeat-schedule
+
+# Migrations
+**/migrations/
