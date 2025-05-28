@@ -13,7 +13,7 @@ https://docs.djangoproject.com/en/5.0/ref/settings/
 from pathlib import Path
 import os
 from decouple import config
-
+from datetime import timedelta
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -41,10 +41,13 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
 
     'rest_framework',
+    'rest_framework_simplejwt.token_blacklist',
     'users',
+    'corsheaders',
 ]
 
 MIDDLEWARE = [
+    'corsheaders.middleware.CorsMiddleware',
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
@@ -138,5 +141,22 @@ REST_FRAMEWORK = {
     ],
     'DEFAULT_RENDERER_CLASSES': [
         'rest_framework.renderers.JSONRenderer',
-    ]
+    ],
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
+    ),
 }
+
+SIMPLE_JWT = {
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=30),
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=1),
+}
+
+GITHUB_CLIENT_ID = os.getenv('GITHUB_CLIENT_ID')
+GITHUB_CLIENT_SECRET = os.getenv('GITHUB_CLIENT_SECRET')
+
+
+CORS_ALLOWED_ORIGINS = [
+  'http://localhost:5173',  # or your front-end port
+  'http://127.0.0.1:5173',
+]
