@@ -1,11 +1,21 @@
-// src/pages/Home.tsx
 import React from 'react'
+import { useAppSelector } from '../app/hooks'
+import { useFetchUser } from '../features/auth/useFetchUser'
 
 const Home: React.FC = () => {
+  useFetchUser()
+  const profile = useAppSelector(state => state.user.user)
+  const username = profile?.username
   return (
     <div className="p-4">
       <h1 className="text-2xl font-bold">Welcome to DevStreak!</h1>
-      <p>You're signed in via GitHub 🎉</p>
+      {username ? (
+        <p>
+          You’re signed in as <strong>{username}</strong> 🎉
+        </p>
+      ) : (
+        <p>Loading your profile…</p>
+      )}
     </div>
   )
 }

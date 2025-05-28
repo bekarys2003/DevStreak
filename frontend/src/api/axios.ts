@@ -1,6 +1,9 @@
 import axios from 'axios'
 import { store } from '../app/store'
 
+console.log('🔗 API baseURL =', import.meta.env.VITE_API_URL)
+// … your axios.create({ baseURL: import.meta.env.VITE_API_URL }) …
+
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL,
 })

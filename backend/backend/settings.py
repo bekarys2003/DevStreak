@@ -156,7 +156,10 @@ GITHUB_CLIENT_ID = os.getenv('GITHUB_CLIENT_ID')
 GITHUB_CLIENT_SECRET = os.getenv('GITHUB_CLIENT_SECRET')
 
 
-CORS_ALLOWED_ORIGINS = [
-  'http://localhost:5173',  # or your front-end port
-  'http://127.0.0.1:5173',
-]
+# CORS_ALLOWED_ORIGINS = [
+#   'http://localhost:5173',  # or your front-end port
+#   'http://127.0.0.1:5173',
+# ]
+
+
+CORS_ALLOW_ALL_ORIGINS = True
