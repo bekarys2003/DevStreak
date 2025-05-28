@@ -5,6 +5,7 @@ import { LoginButton } from './features/auth/LoginButton'
 import { OAuthCallback } from './features/auth/OAuthCallback'
 import { PrivateRoute } from './components/PrivateRoute'
 import Home from './pages/Home'
+import Dashboard from './pages/Dashboard'
 
 import './App.css'
 
@@ -17,6 +18,7 @@ const App: React.FC = () => {
 
       <Route element={<PrivateRoute />}>
         <Route path="/" element={<Home />} />
+        <Route path="/dashboard" element={<Dashboard />} />
         {/* other protected routes */}
       </Route>
     </Routes>
