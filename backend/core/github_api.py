@@ -15,6 +15,50 @@ class GitHubAPIClient:
             ),
             fetch_schema_from_transport=True
         )
+    def fetch_user_contribution_calendar(self, username: str, days: int = 365):
+        """
+        Returns a list of dicts [{date: 'YYYY-MM-DD', count: int}, ...]
+        for the last `days` days (including today).
+        """
+        now = datetime.now(timezone.utc)
+        start = now - timedelta(days=days-1)
+        end = now
+
+        query = gql("""
+        query($login: String!, $from: DateTime!, $to: DateTime!) {
+          user(login: $login) {
+            contributionsCollection(from: $from, to: $to) {
+              contributionCalendar {
+                weeks {
+                  contributionDays {
+                    date
+                    contributionCount
+                  }
+                }
+              }
+            }
+          }
+        }
+        """)
+
+        variables = {
+            "login": username,
+            "from": start.isoformat(),
+            "to": end.isoformat(),
+        }
+        result = self.client.execute(query, variable_values=variables)
+        days_data = []
+        weeks = result["user"]["contributionsCollection"]["contributionCalendar"]["weeks"]
+        for week in weeks:
+            for day in week["contributionDays"]:
+                days_data.append({
+                    "date": day["date"],
+                    "count": day["contributionCount"]
+                })
+        # sort by date ascending
+        days_data.sort(key=lambda d: d["date"])
+        return days_data
+
 
     def fetch_user_contributions(self, username: str):
         """

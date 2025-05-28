@@ -14,6 +14,7 @@ from django.contrib.auth import get_user_model
 from .models import GitHubProfile
 from .serializers import UserSerializer
 from core.github_api import GitHubAPIClient
+from datetime import datetime, timezone, timedelta
 
 User = get_user_model()
 
@@ -112,3 +113,38 @@ def my_contributions(request):
     client = GitHubAPIClient(token)
     data = client.fetch_user_daily_contributions(request.user.username)
     return Response(data)
+
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def my_streak(request):
+    # 1) Get the stored GitHub token
+    try:
+        token = GitHubProfile.objects.get(user=request.user).access_token
+    except GitHubProfile.DoesNotExist:
+        return Response(
+            {'detail': 'GitHub token missing; please log in again.'},
+            status=400
+        )
+
+    # 2) Fetch the last 365 days of contributions
+    client = GitHubAPIClient(token)
+    cal = client.fetch_user_contribution_calendar(request.user.username, days=365)
+
+    # 3) Compute consecutive days ending today with count > 0
+    today_str = datetime.now(timezone.utc).date().isoformat()
+    streak = 0
+    # build a lookup by date
+    lookup = {d["date"]: d["count"] for d in cal}
+    # walk backwards from today
+    current_date = datetime.now(timezone.utc).date()
+    while True:
+        date_str = current_date.isoformat()
+        if lookup.get(date_str, 0) > 0:
+            streak += 1
+            current_date -= timedelta(days=1)
+        else:
+            break
+
+    return Response({'streak': streak})

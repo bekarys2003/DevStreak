@@ -1,21 +1,30 @@
-// src/pages/Dashboard.tsx
 import React from 'react'
 import { useContributions } from '../features/github/useContributions'
+import { useStreak } from '../features/github/useStreak'
 
 const Dashboard: React.FC = () => {
-  const { data, error } = useContributions()
+  const { data: contribs, error: cErr } = useContributions()
+  const { streak, error: sErr }        = useStreak()
 
-  if (error) return <p className="text-red-600">Error: {error}</p>
-  if (!data) return <p>Loading today’s contributions…</p>
+  if (cErr) return <p className="text-red-600">{cErr}</p>
+  if (sErr) return <p className="text-red-600">{sErr}</p>
+  if (!contribs || streak === null) return <p>Loading dashboard…</p>
 
   return (
-    <div className="p-4">
-      <h2 className="text-xl font-bold mb-4">Today’s GitHub Activity</h2>
-      <ul className="list-disc pl-5 space-y-1">
-        <li>Commits: {data.commits}</li>
-        <li>Pull Requests: {data.pull_requests}</li>
-        <li>Reviews: {data.reviews}</li>
-      </ul>
+    <div className="p-4 space-y-6">
+      <section>
+        <h2 className="text-xl font-bold mb-2">Today’s GitHub Activity</h2>
+        <ul className="list-disc pl-5">
+          <li>Commits: {contribs.commits}</li>
+          <li>Pull Requests: {contribs.pull_requests}</li>
+          <li>Reviews: {contribs.reviews}</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2 className="text-xl font-bold mb-2">Current Streak</h2>
+        <p className="text-2xl">{streak} day{streak !== 1 && 's'}</p>
+      </section>
     </div>
   )
 }
