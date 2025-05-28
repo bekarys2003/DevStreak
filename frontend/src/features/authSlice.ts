@@ -1,3 +1,4 @@
+// src/features/auth/authSlice.ts
 import { createSlice, PayloadAction } from '@reduxjs/toolkit'
 
 interface AuthState {
@@ -5,23 +6,25 @@ interface AuthState {
   refreshToken: string | null
 }
 
-const initialState: AuthState = {
-  accessToken: null,
-  refreshToken: null,
+// 🔍 Grab tokens synchronously from localStorage:
+const saved = localStorage.getItem('authTokens')
+let initial: AuthState = { accessToken: null, refreshToken: null }
+if (saved) {
+  try {
+    const { access, refresh } = JSON.parse(saved)
+    initial = { accessToken: access, refreshToken: refresh }
+  } catch { /* ignore malformed JSON */ }
 }
 
 const authSlice = createSlice({
   name: 'auth',
-  initialState,
+  initialState: initial,
   reducers: {
-    setCredentials: (
-      _,
-      { payload }: PayloadAction<{ access: string; refresh: string }>
-    ) => ({
-      accessToken: payload.access,
-      refreshToken: payload.refresh,
-    }),
-    clearCredentials: () => initialState,
+    setCredentials(state, action: PayloadAction<{ access: string; refresh: string }>) {
+      state.accessToken = action.payload.access
+      state.refreshToken = action.payload.refresh
+    },
+    clearCredentials: () => initial,
   },
 })
 
