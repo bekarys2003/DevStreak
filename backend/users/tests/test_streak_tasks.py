@@ -1,24 +1,23 @@
-# backend/users/tests/test_streak_tasks.py
-
+# users/tests/test_streak_tasks.py
 from django.test import TestCase
 from unittest.mock import patch, MagicMock
-import users.tasks as tasks_module
-from users.tasks import broadcast_streak_leaderboard_task
 
-# Prevent async_to_sync from trying to await our MagicMocks
-tasks_module.async_to_sync = lambda fn: fn
+from users.tasks import (
+    broadcast_streak_leaderboard_task,
+    CACHE_KEY_STREAK,
+)
 
-class BroadcastStreakTasksTest(TestCase):
-    @patch('users.tasks.get_channel_layer')
+class BroadcastStreakTaskTest(TestCase):
     @patch('users.tasks.compute_streak_leaderboard')
-    @patch('django.core.cache.cache.set')
-    def test_broadcast_streak_leaderboard_task(self, mock_cache_set, mock_compute, mock_get_layer):
+    @patch('users.tasks.get_channel_layer')
+    @patch('users.tasks.cache')
+    def test_broadcast_streak_leaderboard_task(self, mock_cache, mock_get_layer, mock_compute):
         # Arrange
-        dummy_data = [
-            {'username': 'alice', 'streak': 5},
-            {'username': 'bob',   'streak': 3},
+        dummy = [
+            {'username': 'alice', 'streak': 4},
+            {'username': 'bob',   'streak': 1},
         ]
-        mock_compute.return_value = dummy_data
+        mock_compute.return_value = dummy
 
         fake_layer = MagicMock()
         mock_get_layer.return_value = fake_layer
@@ -26,21 +25,18 @@ class BroadcastStreakTasksTest(TestCase):
         # Act
         result = broadcast_streak_leaderboard_task()
 
-        # Assert compute_streak_leaderboard was called
+        # Assert: compute called
         mock_compute.assert_called_once()
 
-        # Assert we cached the result under the right key
-        from users.tasks import CACHE_KEY
-        mock_cache_set.assert_called_once_with(CACHE_KEY, dummy_data, None)
-
-        # Assert we broadcast on the correct group
+        # WS broadcast
         fake_layer.group_send.assert_called_once_with(
             'streak_leaderboard',
-            {
-                'type': 'streak_leaderboard_update',
-                'data': dummy_data,
-            }
+            {'type': 'streak_leaderboard_update', 'data': dummy}
         )
 
-        # And the task returns a summary message
+        # cache.set with 900s
+        mock_cache.set.assert_called_once_with(
+            CACHE_KEY_STREAK, dummy, timeout=900
+        )
+
         self.assertIn('Broadcasted 2 streak entries', result)
