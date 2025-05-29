@@ -7,3 +7,6 @@ django-cors-headers
 requests
 gql
 requests_toolbelt
+channels
+channels-redis
+daphne

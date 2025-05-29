@@ -6,6 +6,7 @@ import { OAuthCallback } from './features/auth/OAuthCallback'
 import { PrivateRoute } from './components/PrivateRoute'
 import Home from './pages/Home'
 import Dashboard from './pages/Dashboard'
+import DailyLeaderboard from './pages/DailyLeaderboard'  // ← import it
 
 import './App.css'
 
@@ -19,6 +20,8 @@ const App: React.FC = () => {
       <Route element={<PrivateRoute />}>
         <Route path="/" element={<Home />} />
         <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/daily-leaderboard" element={<DailyLeaderboard />} />  {/* ← add this */}
+
         {/* other protected routes */}
       </Route>
     </Routes>
