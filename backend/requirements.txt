@@ -10,3 +10,5 @@ requests_toolbelt
 channels
 channels-redis
 daphne
+celery
+redis

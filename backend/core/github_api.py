@@ -3,6 +3,7 @@
 from datetime import datetime, timedelta, timezone
 from gql import Client, gql
 from gql.transport.requests import RequestsHTTPTransport
+from zoneinfo import ZoneInfo
 
 class GitHubAPIClient:
     def __init__(self, token: str):
@@ -15,6 +16,46 @@ class GitHubAPIClient:
             ),
             fetch_schema_from_transport=True
         )
+
+    def fetch_user_daily_contributions_local(self, username: str, local_tz: str):
+        """
+        Returns commit/PR/review counts for *today* in the given local tz.
+        """
+        # 1) Compute local start/end
+        tz = ZoneInfo(local_tz)                  # e.g. "America/Vancouver"
+        now_local = datetime.now(tz)
+        start_local = now_local.replace(hour=0, minute=0, second=0, microsecond=0)
+        end_local = now_local
+
+        # 2) Convert to UTC for the API
+        start_utc = start_local.astimezone(timezone.utc)
+        end_utc   = end_local.astimezone(timezone.utc)
+
+        # 3) Run the GraphQL query
+        query = gql("""
+        query($login: String!, $from: DateTime!, $to: DateTime!) {
+          user(login: $login) {
+            contributionsCollection(from: $from, to: $to) {
+              totalCommitContributions
+              totalPullRequestContributions
+              totalPullRequestReviewContributions
+            }
+          }
+        }
+        """)
+        variables = {
+            "login": username,
+            "from":  start_utc.isoformat(),
+            "to":    end_utc.isoformat(),
+        }
+        result = self.client.execute(query, variable_values=variables)
+        coll   = result["user"]["contributionsCollection"]
+        return {
+            "commits":       coll["totalCommitContributions"],
+            "pull_requests": coll["totalPullRequestContributions"],
+            "reviews":       coll["totalPullRequestReviewContributions"],
+        }
+
     def fetch_user_contribution_calendar(self, username: str, days: int = 365):
         """
         Returns a list of dicts [{date: 'YYYY-MM-DD', count: int}, ...]

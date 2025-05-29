@@ -150,23 +150,6 @@ def my_streak(request):
     return Response({'streak': streak})
 
 
-def compute_daily_commits():
-    today = datetime.now(timezone.utc).date()
-    entries = []
-
-    for profile in GitHubProfile.objects.select_related("user").all():
-        token = profile.access_token
-        client = GitHubAPIClient(token)
-        # fetch only today’s contributions
-        contribs = client.fetch_user_daily_contributions(profile.user.username)
-        entries.append({
-            "username": profile.user.username,
-            "commits": contribs["commits"],
-        })
-
-    # sort descending
-    entries.sort(key=lambda e: e["commits"], reverse=True)
-    return entries
 
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
@@ -175,3 +158,20 @@ def leaderboard(request):
     REST‐fallback for clients who can’t do WebSockets.
     """
     return Response(compute_daily_commits())
+
+
+
+def compute_daily_commits():
+    entries = []
+    for profile in GitHubProfile.objects.select_related("user").all():
+        client = GitHubAPIClient(profile.access_token)
+        data   = client.fetch_user_daily_contributions_local(
+                     profile.user.username,
+                     local_tz="America/Vancouver"
+                 )
+        entries.append({
+            "username": profile.user.username,
+            "commits": data["commits"],
+        })
+    entries.sort(key=lambda e: e["commits"], reverse=True)
+    return entries

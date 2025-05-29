@@ -10,6 +10,11 @@ services:
     volumes:
       - db_data:/var/lib/postgresql/data
 
+  redis:
+    image: redis:7
+    ports:
+      - "6379:6379"
+
   web:
     build: .
     # ensures the container runs in /app
@@ -24,6 +29,22 @@ services:
       - db
     env_file:
       - .env
+    environment:
+      - DJANGO_SETTINGS_MODULE=backend.settings
+
+  worker:
+    build: .
+    working_dir: /app
+    command: celery -A backend worker --beat --loglevel=info
+    volumes:
+      - .:/app
+    depends_on:
+      - db
+      - redis
+    env_file:
+      - .env
+    environment:
+      - DJANGO_SETTINGS_MODULE=backend.settings
 
 volumes:
   db_data:

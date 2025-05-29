@@ -14,6 +14,8 @@ from pathlib import Path
 import os
 from decouple import config
 from datetime import timedelta
+from celery import Celery
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -172,3 +174,11 @@ CHANNEL_LAYERS = {
         'BACKEND': 'channels.layers.InMemoryChannelLayer'
     }
 }
+
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'backend.settings')
+
+app = Celery('backend')
+app.conf.broker_url = 'redis://redis:6379/0'
+
+app.config_from_object('django.conf:settings', namespace='CELERY')
+app.autodiscover_tasks()
