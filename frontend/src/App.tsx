@@ -7,6 +7,7 @@ import { PrivateRoute } from './components/PrivateRoute'
 import Home from './pages/Home'
 import Dashboard from './pages/Dashboard'
 import DailyLeaderboard from './pages/DailyLeaderboard'  // ← import it
+import { StreakLeaderboard } from './pages/StreakLeaderboard'
 
 import './App.css'
 
@@ -21,6 +22,7 @@ const App: React.FC = () => {
         <Route path="/" element={<Home />} />
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/daily-leaderboard" element={<DailyLeaderboard />} />  {/* ← add this */}
+        <Route path="/streak-leaderboard" element={<StreakLeaderboard />} />
 
         {/* other protected routes */}
       </Route>

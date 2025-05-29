@@ -15,6 +15,11 @@ from .models import GitHubProfile
 from .serializers import UserSerializer
 from core.github_api import GitHubAPIClient
 from datetime import datetime, timezone, timedelta
+from django.core.cache import cache
+
+CACHE_KEY_COMMITS = 'daily_commits_leaderboard'
+CACHE_KEY_STREAK = "streak_leaderboard"
+
 
 User = get_user_model()
 
@@ -151,13 +156,22 @@ def my_streak(request):
 
 
 
+
+
+
+
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
 def leaderboard(request):
     """
-    REST‐fallback for clients who can’t do WebSockets.
+    REST-fallback for clients who can’t do WebSockets.
     """
-    return Response(compute_daily_commits())
+    data = cache.get(CACHE_KEY_COMMITS)
+    if data is None:
+        # cold cache: compute & prime
+        data = compute_daily_commits()
+        cache.set(CACHE_KEY_COMMITS, data, timeout=15 * 60)
+    return Response(data)
 
 
 
@@ -174,4 +188,37 @@ def compute_daily_commits():
             "commits": data["commits"],
         })
     entries.sort(key=lambda e: e["commits"], reverse=True)
+    return entries
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def streak_leaderboard(request):
+    data = cache.get(CACHE_KEY_STREAK)
+    if data is None:
+        # pristine cache on cold start
+        data = compute_streak_leaderboard()
+        cache.set(CACHE_KEY_STREAK, data, timeout=15*60)
+    return Response(data)
+
+
+def compute_streak_leaderboard():
+    entries = []
+    for profile in GitHubProfile.objects.select_related("user"):
+        client = GitHubAPIClient(profile.access_token)
+        cal    = client.fetch_user_contribution_calendar(
+                     profile.user.username, days=365
+                 )
+        lookup = {d["date"]: d["count"] for d in cal}
+        streak = 0
+        cur    = datetime.now(timezone.utc).date()
+        while lookup.get(cur.isoformat(), 0) > 0:
+            streak += 1
+            cur -= timedelta(days=1)
+        entries.append({
+            "username": profile.user.username,
+            "streak":   streak,
+        })
+
+    entries.sort(key=lambda e: e["streak"], reverse=True)
     return entries

@@ -5,10 +5,11 @@ python-decouple
 psycopg2-binary
 django-cors-headers
 requests
-gql
-requests_toolbelt
+gql>=3.5.3
+requests-toolbelt>=0.10.1
 channels
 channels-redis
+django-redis
 daphne
 celery
 redis

@@ -27,6 +27,7 @@ services:
       - "8000:8000"    # host:container
     depends_on:
       - db
+      - redis
     env_file:
       - .env
     environment:

@@ -20,6 +20,7 @@ from celery import Celery
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 
+
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.0/howto/deployment/checklist/
 
@@ -175,10 +176,12 @@ CHANNEL_LAYERS = {
     }
 }
 
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'backend.settings')
-
-app = Celery('backend')
-app.conf.broker_url = 'redis://redis:6379/0'
-
-app.config_from_object('django.conf:settings', namespace='CELERY')
-app.autodiscover_tasks()
+CACHES = {
+    'default': {
+        'BACKEND': 'django_redis.cache.RedisCache',
+        'LOCATION': 'redis://redis:6379/1',
+        'OPTIONS': {
+            'CLIENT_CLASS': 'django_redis.client.DefaultClient',
+        }
+    }
+}

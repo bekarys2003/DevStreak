@@ -45,3 +45,19 @@ class DailyCommitsConsumer(AsyncJsonWebsocketConsumer):
         from users.views import compute_daily_commits
 
         return await sync_to_async(compute_daily_commits)()
+
+
+
+class StreakLeaderboardConsumer(AsyncJsonWebsocketConsumer):
+    async def connect(self):
+        await self.accept()
+        await self.channel_layer.group_add("streak_leaderboard", self.channel_name)
+        from .views import compute_streak_leaderboard
+        data = await sync_to_async(compute_streak_leaderboard)()
+        await self.send_json(data)
+
+    async def disconnect(self, code):
+        await self.channel_layer.group_discard("streak_leaderboard", self.channel_name)
+
+    async def streak_leaderboard_update(self, event):
+        await self.send_json(event["data"])
