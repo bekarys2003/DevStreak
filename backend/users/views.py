@@ -253,7 +253,7 @@ from .services                     import record_today_xp
 @permission_classes([AllowAny])
 def github_push_webhook(request):
     # Debug incoming event
-    print("🔔 [Webhook] Got event:", request.META.get("HTTP_X_GITHUB_EVENT"))
+    logger.info("🔔 [Webhook] Got event: %s", request.META.get("HTTP_X_GITHUB_EVENT"))
 
     gh_username = request.data['repository']['owner']['login']
     try:
@@ -266,7 +266,12 @@ def github_push_webhook(request):
     if count:
         xp_award = count * 2
         # Debug XP sync
-        print(f"[XP SYNC] {profile.user.username}: +{xp_award} XP, +{count} commits")
+        logger.info(
+            "[XP SYNC] %s: +%d XP, +%d commits",
+            profile.user.username,
+            count * 2,
+            count
+        )
         record_today_xp(
             profile.user,
             xp_delta=xp_award,
