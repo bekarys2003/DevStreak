@@ -17,8 +17,8 @@ from .models import GitHubProfile
 from .serializers import UserSerializer
 from core.github_api import GitHubAPIClient
 # from datetime import datetime, timezone, timedelta
+from datetime import datetime, timedelta
 from django.core.cache import cache
-from datetime import date
 from .models import DailyContribution
 from .services import record_today_xp
 import logging
@@ -276,6 +276,13 @@ def github_push_webhook(request):
             count * 2,
             count
         )
+        for c in commits:
+            msg = c.get('message', '').strip()
+            logger.info(
+                "[COMMIT MSG] %s: %s",
+                profile.user.username,
+                msg or "<no message>"
+            )
         record_today_xp(
             profile.user,
             xp_delta=xp_award,
