@@ -21,7 +21,9 @@ from django.core.cache import cache
 from datetime import date
 from .models import DailyContribution
 from .services import record_today_xp
+import logging
 
+logger = logging.getLogger(__name__)
 CACHE_KEY_COMMITS = 'daily_commits_leaderboard'
 CACHE_KEY_STREAK = "streak_leaderboard"
 
