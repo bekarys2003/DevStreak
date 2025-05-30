@@ -2,7 +2,6 @@
 from channels.generic.websocket import AsyncJsonWebsocketConsumer
 import logging
 
-
 logger = logging.getLogger(__name__)
 class DailyCommitsConsumer(AsyncJsonWebsocketConsumer):
     async def connect(self):

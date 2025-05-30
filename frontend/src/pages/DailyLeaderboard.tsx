@@ -2,13 +2,14 @@
 import React from 'react'
 import { useDailyCommitsSocket } from '../features/github/useDailyCommitsSocket'
 
-interface LeaderboardEntry {
+interface XPEntry {
   username: string
   xp: number
 }
 
-const DailyLeaderboard: React.FC = () => {
-  const data: LeaderboardEntry[] | null = useDailyCommitsSocket()
+export const DailyLeaderboard: React.FC = () => {
+  // Annotate the return from your hook so TS knows it’s CommitEntry[] | null
+  const data: XPEntry[] | null = useDailyCommitsSocket()
 
   if (!data) {
     return <p className="p-4">Loading daily XP leaderboard…</p>
@@ -24,7 +25,7 @@ const DailyLeaderboard: React.FC = () => {
               {index + 1}. <strong>{entry.username}</strong>
             </span>
             <span>
-              {entry.xp} XP
+              {entry.xp} commit{entry.xp !== 1 && 's'}
             </span>
           </li>
         ))}

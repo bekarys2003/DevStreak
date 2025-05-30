@@ -1,13 +1,13 @@
 // src/features/github/useDailyCommitsSocket.ts
 import { useEffect, useState } from 'react'
 
-export interface DailyEntry {
+export interface XPEntry {
   username: string
   xp: number
 }
 
-export function useDailyCommitsSocket(): DailyEntry[] | null {
-  const [entries, setEntries] = useState<DailyEntry[] | null>(null)
+export function useDailyCommitsSocket(): XPEntry[] | null {
+  const [entries, setEntries] = useState<XPEntry[] | null>(null)
 
   useEffect(() => {
     const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws'
@@ -23,7 +23,7 @@ export function useDailyCommitsSocket(): DailyEntry[] | null {
 
     socket.onmessage = (e) => {
       try {
-        const data: DailyEntry[] = JSON.parse(e.data)
+        const data: XPEntry[] = JSON.parse(e.data)
         setEntries(data)
       } catch (err) {
         console.error('Failed to parse daily-commits message', err)
@@ -37,7 +37,7 @@ export function useDailyCommitsSocket(): DailyEntry[] | null {
     return () => {
       socket.close()
     }
-  }, [])  // empty dependency array ensures this runs once
+  }, [])  // no dependencies
 
   return entries
 }
