@@ -1,13 +1,15 @@
 # users/services.py
-from datetime import date
 from .models import DailyContribution
+from django.utils import timezone
+
+
 
 
 def record_today_xp(user, xp_delta, commit_delta=0):
     """
     Increment today’s XP by xp_delta, and optionally track raw commit_count.
     """
-    today = date.today()
+    today = timezone.localdate()
     dc, _ = DailyContribution.objects.get_or_create(
         user=user, date=today,
         defaults={'commit_count': 0, 'xp': 0}

@@ -16,12 +16,14 @@ from django.contrib.auth import get_user_model
 from .models import GitHubProfile
 from .serializers import UserSerializer
 from core.github_api import GitHubAPIClient
-from datetime import datetime, timezone, timedelta
+# from datetime import datetime, timezone, timedelta
 from django.core.cache import cache
 from datetime import date
 from .models import DailyContribution
 from .services import record_today_xp
 import logging
+from django.utils import timezone
+
 
 logger = logging.getLogger(__name__)
 CACHE_KEY_COMMITS = 'daily_commits_leaderboard'
@@ -145,12 +147,12 @@ def my_streak(request):
     cal = client.fetch_user_contribution_calendar(request.user.username, days=365)
 
     # 3) Compute consecutive days ending today with count > 0
-    today_str = datetime.now(timezone.utc).date().isoformat()
+    today_str = timezone.localdate().isoformat()
     streak = 0
     # build a lookup by date
     lookup = {d["date"]: d["count"] for d in cal}
     # walk backwards from today
-    current_date = datetime.now(timezone.utc).date()
+    current_date = timezone.localdate()
     while True:
         date_str = current_date.isoformat()
         if lookup.get(date_str, 0) > 0:
@@ -185,7 +187,7 @@ def leaderboard(request):
 
 
 def compute_daily_xp_leaderboard():
-    today = date.today()
+    today =  timezone.localdate()
     qs = DailyContribution.objects.filter(date=today).select_related('user')
     entries = [
         {'username': dc.user.username, 'xp': dc.xp}
@@ -222,7 +224,7 @@ def compute_streak_leaderboard():
             latest_iso = max(non_zero)
             cur = datetime.fromisoformat(latest_iso).date()
         else:
-            cur = datetime.now(timezone.utc).date()
+            cur = timezone.localdate()
 
         # walk backwards counting days with >0 commits
         streak = 0

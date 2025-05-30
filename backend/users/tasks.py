@@ -6,7 +6,8 @@ from .views           import compute_daily_xp_leaderboard, compute_streak_leader
 from .models import GitHubProfile, DailyContribution
 from core.github_api import GitHubAPIClient
 from .services        import record_today_xp
-from datetime import date
+from django.utils import timezone
+
 
 CACHE_KEY_STREAK = 'streak_leaderboard'
 CACHE_KEY_COMMITS  = 'daily_commits_leaderboard'
@@ -41,7 +42,7 @@ def broadcast_streak_leaderboard_task():
 
 @shared_task
 def fetch_and_record_commits():
-    today = date.today()
+    today = timezone.localdate()
     for profile in GitHubProfile.objects.select_related("user"):
         # 1) Fetch GitHub’s authoritative total for today
         data    = GitHubAPIClient(profile.access_token) \
