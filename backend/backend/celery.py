@@ -6,7 +6,6 @@ os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'backend.settings')
 app = Celery('backend')
 app.config_from_object('django.conf:settings', namespace='CELERY')
 app.autodiscover_tasks()
-app.conf.broker_url = 'redis://redis:6379/0'
 
 # schedule both broadcasts every 15′
 app.conf.beat_schedule = {
@@ -16,6 +15,10 @@ app.conf.beat_schedule = {
     },
     'broadcast-streak-leaderboard-every-15-minutes': {
         'task': 'users.tasks.broadcast_streak_leaderboard_task',
+        'schedule': crontab(minute='*/15'),
+    },
+    'fetch-and-record-commits-every-15-minutes': {
+        'task': 'users.tasks.fetch_and_record_commits',
         'schedule': crontab(minute='*/15'),
     },
 }

@@ -45,9 +45,9 @@ INSTALLED_APPS = [
 
     'rest_framework',
     'rest_framework_simplejwt.token_blacklist',
-    'users',
     'corsheaders',
-    'channels'
+    'channels',
+    "users.apps.UsersConfig",
 ]
 
 MIDDLEWARE = [
@@ -185,3 +185,12 @@ CACHES = {
         }
     }
 }
+
+CELERY_BROKER_URL = os.getenv(
+    "CELERY_BROKER_URL",
+    "redis://redis:6379/0",
+)
+CELERY_RESULT_BACKEND = os.getenv(
+    "CELERY_RESULT_BACKEND",
+    "redis://redis:6379/0",
+)

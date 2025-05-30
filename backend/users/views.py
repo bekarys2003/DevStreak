@@ -6,7 +6,9 @@ from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework.permissions import AllowAny
 
+from .github_payload_utils import extract_commit_count  # your helper
 import requests
 from django.conf import settings
 from django.contrib.auth import get_user_model
@@ -209,12 +211,23 @@ def compute_streak_leaderboard():
         cal    = client.fetch_user_contribution_calendar(
                      profile.user.username, days=365
                  )
-        lookup = {d["date"]: d["count"] for d in cal}
+        # map and filter
+        lookup   = {d["date"]: d["count"] for d in cal}
+        non_zero = [d["date"] for d in cal if d["count"] > 0]
+
+        # start from your last commit date (not a zero-count today)
+        if non_zero:
+            latest_iso = max(non_zero)
+            cur = datetime.fromisoformat(latest_iso).date()
+        else:
+            cur = datetime.now(timezone.utc).date()
+
+        # walk backwards counting days with >0 commits
         streak = 0
-        cur    = datetime.now(timezone.utc).date()
         while lookup.get(cur.isoformat(), 0) > 0:
             streak += 1
             cur -= timedelta(days=1)
+
         entries.append({
             "username": profile.user.username,
             "streak":   streak,
@@ -222,3 +235,28 @@ def compute_streak_leaderboard():
 
     entries.sort(key=lambda e: e["streak"], reverse=True)
     return entries
+
+
+
+
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def github_push_webhook(request):
+    # 1) Validate signature / secret (GitHub docs)
+    # 2) Parse payload
+    payload = request.data
+    # 3) Extract GitHub username and number of commits
+    gh_username = payload['repository']['owner']['login']
+    commit_count = extract_commit_count(payload)
+
+    # 4) Find your local user
+    try:
+        profile = GitHubProfile.objects.get(user__username=gh_username)
+    except GitHubProfile.DoesNotExist:
+        return Response(status=404)
+
+    # 5) Record and broadcast
+    record_today_commits(profile.user, commit_count)
+
+    return Response(status=204)
