@@ -12,9 +12,9 @@ class DailyCommitsConsumer(AsyncJsonWebsocketConsumer):
 
         # immediate send so client doesn’t hang
         from asgiref.sync import sync_to_async
-        from users.views import compute_daily_commits
+        from users.views import compute_daily_xp_leaderboard
 
-        data = await sync_to_async(compute_daily_commits)()
+        data = await sync_to_async(compute_daily_xp_leaderboard)()
         logger.info("⚡️ [Consumer.connect] Sending initial data: %r", data)
         await self.send_json(data)
 
@@ -39,12 +39,12 @@ class DailyCommitsConsumer(AsyncJsonWebsocketConsumer):
 
     async def _compute_leaderboard(self):
         """
-        Helper to call your sync compute_daily_commits() from users.views.
+        Helper to call your sync compute_daily_xp_leaderboard() from users.views.
         """
         from asgiref.sync import sync_to_async
-        from users.views import compute_daily_commits
+        from users.views import compute_daily_xp_leaderboard
 
-        return await sync_to_async(compute_daily_commits)()
+        return await sync_to_async(compute_daily_xp_leaderboard)()
 
 
 

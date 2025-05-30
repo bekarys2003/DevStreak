@@ -173,7 +173,7 @@ def leaderboard(request):
     data = cache.get(CACHE_KEY_COMMITS)
     if data is None:
         # cold cache: compute & prime
-        data = compute_daily_commits()
+        data = compute_daily_xp_leaderboard()
         cache.set(CACHE_KEY_COMMITS, data, timeout=15 * 60)
         # return Response([], status=status.HTTP_204_NO_CONTENT)
 
@@ -181,19 +181,14 @@ def leaderboard(request):
 
 
 
-def compute_daily_commits():
+def compute_daily_xp_leaderboard():
     today = date.today()
-    qs = (
-        DailyContribution.objects
-        .filter(date=today)
-        .select_related('user')
-    )
+    qs = DailyContribution.objects.filter(date=today).select_related('user')
     entries = [
-        {'username': dc.user.username, 'commits': dc.commit_count}
+        {'username': dc.user.username, 'xp': dc.xp}
         for dc in qs
     ]
-    # sort highest first
-    entries.sort(key=lambda e: e['commits'], reverse=True)
+    entries.sort(key=lambda e: e['xp'], reverse=True)
     return entries
 
 
@@ -254,16 +249,18 @@ def github_push_webhook(request):
     except GitHubProfile.DoesNotExist:
         return Response(status=404)
 
-    # 👉 Fetch the REAL commit count from GitHub’s calendar
-    client = GitHubAPIClient(profile.access_token)
-    data   = client.fetch_user_daily_contributions_local(
-                 gh_username,
-                 local_tz="America/Vancouver"
-             )
-    commit_count = data.get('commits', 0)
+    payload_commits = request.data.get('commits', [])
+    commit_count = len(payload_commits)
 
-    # persist & broadcast
-    record_today_commits(profile.user, commit_count)
+    if commit_count:
+        # 2 XP per commit, no message analysis yet:
+        xp_award = commit_count * 2
+        from .services import record_today_commits
+        record_today_commits(
+            profile.user,
+            xp_delta= xp_award,
+            commit_delta= commit_count
+        )
 
     return Response(status=204)
 

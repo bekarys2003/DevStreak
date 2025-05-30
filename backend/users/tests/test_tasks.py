@@ -8,10 +8,10 @@ tasks_module.async_to_sync = lambda fn: fn
 
 class BroadcastTasksTest(TestCase):
     @patch('users.tasks.get_channel_layer')
-    @patch('users.tasks.compute_daily_commits')
+    @patch('users.tasks.compute_daily_xp_leaderboard')
     def test_broadcast_daily_commits_task(self, mock_compute, mock_get_layer):
         # Arrange
-        # 1) compute_daily_commits returns a dummy leaderboard
+        # 1) compute_daily_xp_leaderboard returns a dummy leaderboard
         dummy_board = [
             {'username': 'alice', 'commits': 5},
             {'username': 'bob',   'commits': 3},

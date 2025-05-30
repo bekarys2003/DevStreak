@@ -2,16 +2,17 @@ from asgiref.sync     import async_to_sync
 from channels.layers  import get_channel_layer
 from celery           import shared_task
 from django.core.cache import cache
-from .views           import compute_daily_commits, compute_streak_leaderboard
+from .views           import compute_daily_xp_leaderboard, compute_streak_leaderboard
 from .models import GitHubProfile
 from core.github_api import GitHubAPIClient
+from .services        import record_today_xp
 
 CACHE_KEY_STREAK = 'streak_leaderboard'
 CACHE_KEY_COMMITS  = 'daily_commits_leaderboard'
 
 @shared_task
 def broadcast_daily_commits_task():
-    data = compute_daily_commits()
+    data = compute_daily_xp_leaderboard()
     # 1) broadcast over WebSocket
     layer = get_channel_layer()
     async_to_sync(layer.group_send)(
@@ -41,14 +42,19 @@ def broadcast_streak_leaderboard_task():
 
 @shared_task
 def fetch_and_record_commits():
-    """
-    Every 15 minutes (or as you schedule), fetch from GitHub
-    and persist; the post_save signal then broadcasts.
-    """
     for profile in GitHubProfile.objects.select_related("user"):
-        data = GitHubAPIClient(profile.access_token) \
-               .fetch_user_daily_contributions_local(
-                   profile.user.username,
-                   local_tz="America/Vancouver"
-               )
-        record_today_commits(profile.user, data["commits"])
+        data    = GitHubAPIClient(profile.access_token) \
+                    .fetch_user_daily_contributions_local(
+                        profile.user.username,
+                        local_tz="America/Vancouver"
+                    )
+        commits = data.get("commits", 0)
+        if commits:
+            # LOGGING—add this temporarily
+            print(f"[XP SYNC] {profile.user.username}: +{commits*2} XP, +{commits} commits")
+
+            record_today_xp(
+                profile.user,
+                xp_delta=commits * 2,
+                commit_delta=commits,
+            )

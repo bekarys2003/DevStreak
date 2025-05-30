@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react'
 
 export interface DailyEntry {
   username: string
-  commits: number
+  xp: number
 }
 
 export function useDailyCommitsSocket(): DailyEntry[] | null {
@@ -37,7 +37,7 @@ export function useDailyCommitsSocket(): DailyEntry[] | null {
     return () => {
       socket.close()
     }
-  }, [])  // no dependencies
+  }, [])  // empty dependency array ensures this runs once
 
   return entries
 }

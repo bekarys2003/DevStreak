@@ -5,7 +5,7 @@ from channels.layers         import get_channel_layer
 
 from .models import DailyContribution
 from .models import GitHubProfile
-from .views    import compute_daily_commits
+from .views    import compute_daily_xp_leaderboard
 from .tasks    import CACHE_KEY_COMMITS
 from django.core.cache import cache
 
@@ -26,7 +26,7 @@ def broadcast_single_commit_update(sender, instance, **kwargs):
             }]
         }
     )
-    board = compute_daily_commits()
+    board = compute_daily_xp_leaderboard()
     cache.set(CACHE_KEY_COMMITS, board, timeout=15 * 60)
 
 
@@ -37,7 +37,7 @@ def record_today_commits(sender, instance, **kwargs):
     For example, immediately recompute & cache today’s leaderboard.
     """
     # e.g. prime the cache so celery beat tasks have fresh data
-    data = compute_daily_commits()
+    data = compute_daily_xp_leaderboard()
     # store into cache if you like:
     cache.set('daily_commits_leaderboard', data, timeout=15 * 60)
 

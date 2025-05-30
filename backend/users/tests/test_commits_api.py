@@ -18,7 +18,7 @@ class CommitsApiCachingTest(TestCase):
         GitHubProfile.objects.create(user=self.user, access_token='tok')
         self.client.force_authenticate(self.user)
 
-    @patch('users.views.compute_daily_commits')
+    @patch('users.views.compute_daily_xp_leaderboard')
     @patch('users.views.cache')
     def test_leaderboard_reads_cache_when_present(self, mock_cache, mock_compute):
         # Arrange: cache.get returns a canned list
@@ -34,7 +34,7 @@ class CommitsApiCachingTest(TestCase):
         self.assertEqual(resp.status_code, 200)
         self.assertEqual(resp.json(), canned)
 
-    @patch('users.views.compute_daily_commits')
+    @patch('users.views.compute_daily_xp_leaderboard')
     @patch('users.views.cache')
     def test_leaderboard_computes_and_primes_on_miss(self, mock_cache, mock_compute):
         # Arrange: miss on cache

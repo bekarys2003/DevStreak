@@ -3,13 +3,13 @@
 from django.core.management.base import BaseCommand
 from asgiref.sync       import async_to_sync
 from channels.layers    import get_channel_layer
-from users.views        import compute_daily_commits
+from users.views        import compute_daily_xp_leaderboard
 
 class Command(BaseCommand):
     help = "Broadcast today's commits leaderboard to WebSocket clients"
 
     def handle(self, *args, **options):
-        leaderboard = compute_daily_commits()
+        leaderboard = compute_daily_xp_leaderboard()
         channel_layer = get_channel_layer()
         async_to_sync(channel_layer.group_send)(
             "daily_commits",

@@ -8,7 +8,7 @@ from users.tasks import (
 )
 
 class BroadcastCommitsTaskTest(TestCase):
-    @patch('users.tasks.compute_daily_commits')
+    @patch('users.tasks.compute_daily_xp_leaderboard')
     @patch('users.tasks.get_channel_layer')
     @patch('users.tasks.cache')
     def test_broadcast_daily_commits_task(self, mock_cache, mock_get_layer, mock_compute):
