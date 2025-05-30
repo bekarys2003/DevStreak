@@ -18,9 +18,10 @@ from .serializers import UserSerializer
 from core.github_api import GitHubAPIClient
 from datetime import datetime, timezone, timedelta
 from django.core.cache import cache
-from .services import record_today_commits
 from datetime import date
 from .models import DailyContribution
+from .services import record_today_xp
+
 CACHE_KEY_COMMITS = 'daily_commits_leaderboard'
 CACHE_KEY_STREAK = "streak_leaderboard"
 
@@ -240,30 +241,36 @@ def compute_streak_leaderboard():
 
 
 
+# users/views.py
+
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions    import AllowAny
+from rest_framework.response       import Response
+from .models                       import GitHubProfile
+from .services                     import record_today_xp
+
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def github_push_webhook(request):
+    # Debug incoming event
+    print("🔔 [Webhook] Got event:", request.META.get("HTTP_X_GITHUB_EVENT"))
+
     gh_username = request.data['repository']['owner']['login']
     try:
         profile = GitHubProfile.objects.get(user__username=gh_username)
     except GitHubProfile.DoesNotExist:
         return Response(status=404)
 
-    payload_commits = request.data.get('commits', [])
-    commit_count = len(payload_commits)
-
-    if commit_count:
-        # 2 XP per commit, no message analysis yet:
-        xp_award = commit_count * 2
-        from .services import record_today_commits
-        record_today_commits(
+    commits = request.data.get('commits', [])
+    count   = len(commits)
+    if count:
+        xp_award = count * 2
+        # Debug XP sync
+        print(f"[XP SYNC] {profile.user.username}: +{xp_award} XP, +{count} commits")
+        record_today_xp(
             profile.user,
-            xp_delta= xp_award,
-            commit_delta= commit_count
+            xp_delta=xp_award,
+            commit_delta=count
         )
 
     return Response(status=204)
-
-
-
-#second check for the webhook2
