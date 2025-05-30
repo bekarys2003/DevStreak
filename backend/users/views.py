@@ -266,3 +266,7 @@ def github_push_webhook(request):
     record_today_commits(profile.user, commit_count)
 
     return Response(status=204)
+
+
+
+#second check for the webhook
