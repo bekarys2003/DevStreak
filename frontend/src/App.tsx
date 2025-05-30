@@ -6,7 +6,7 @@ import { OAuthCallback } from './features/auth/OAuthCallback'
 import { PrivateRoute } from './components/PrivateRoute'
 import Home from './pages/Home'
 import Dashboard from './pages/Dashboard'
-import DailyLeaderboard from './pages/DailyLeaderboard'  // ← import it
+import DailyLeaderboard from './pages/DailyLeaderboard';
 import { StreakLeaderboard } from './pages/StreakLeaderboard'
 
 import './App.css'

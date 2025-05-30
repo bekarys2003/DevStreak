@@ -7,6 +7,7 @@ from .models import DailyContribution
 from .models import GitHubProfile
 from .views    import compute_daily_commits
 from .tasks    import CACHE_KEY_COMMITS
+from django.core.cache import cache
 
 @receiver(post_save, sender=DailyContribution)
 def broadcast_single_commit_update(sender, instance, **kwargs):
@@ -38,7 +39,6 @@ def record_today_commits(sender, instance, **kwargs):
     # e.g. prime the cache so celery beat tasks have fresh data
     data = compute_daily_commits()
     # store into cache if you like:
-    from django.core.cache import cache
     cache.set('daily_commits_leaderboard', data, timeout=15 * 60)
 
 

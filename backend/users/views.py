@@ -18,7 +18,9 @@ from .serializers import UserSerializer
 from core.github_api import GitHubAPIClient
 from datetime import datetime, timezone, timedelta
 from django.core.cache import cache
-
+from .services import record_today_commits
+from datetime import date
+from .models import DailyContribution
 CACHE_KEY_COMMITS = 'daily_commits_leaderboard'
 CACHE_KEY_STREAK = "streak_leaderboard"
 
@@ -173,23 +175,25 @@ def leaderboard(request):
         # cold cache: compute & prime
         data = compute_daily_commits()
         cache.set(CACHE_KEY_COMMITS, data, timeout=15 * 60)
+        # return Response([], status=status.HTTP_204_NO_CONTENT)
+
     return Response(data)
 
 
 
 def compute_daily_commits():
-    entries = []
-    for profile in GitHubProfile.objects.select_related("user").all():
-        client = GitHubAPIClient(profile.access_token)
-        data   = client.fetch_user_daily_contributions_local(
-                     profile.user.username,
-                     local_tz="America/Vancouver"
-                 )
-        entries.append({
-            "username": profile.user.username,
-            "commits": data["commits"],
-        })
-    entries.sort(key=lambda e: e["commits"], reverse=True)
+    today = date.today()
+    qs = (
+        DailyContribution.objects
+        .filter(date=today)
+        .select_related('user')
+    )
+    entries = [
+        {'username': dc.user.username, 'commits': dc.commit_count}
+        for dc in qs
+    ]
+    # sort highest first
+    entries.sort(key=lambda e: e['commits'], reverse=True)
     return entries
 
 
@@ -240,23 +244,25 @@ def compute_streak_leaderboard():
 
 
 
+
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def github_push_webhook(request):
-    # 1) Validate signature / secret (GitHub docs)
-    # 2) Parse payload
-    payload = request.data
-    # 3) Extract GitHub username and number of commits
-    gh_username = payload['repository']['owner']['login']
-    commit_count = extract_commit_count(payload)
-
-    # 4) Find your local user
+    gh_username = request.data['repository']['owner']['login']
     try:
         profile = GitHubProfile.objects.get(user__username=gh_username)
     except GitHubProfile.DoesNotExist:
         return Response(status=404)
 
-    # 5) Record and broadcast
+    # 👉 Fetch the REAL commit count from GitHub’s calendar
+    client = GitHubAPIClient(profile.access_token)
+    data   = client.fetch_user_daily_contributions_local(
+                 gh_username,
+                 local_tz="America/Vancouver"
+             )
+    commit_count = data.get('commits', 0)
+
+    # persist & broadcast
     record_today_commits(profile.user, commit_count)
 
     return Response(status=204)
