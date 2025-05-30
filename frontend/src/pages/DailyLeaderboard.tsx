@@ -25,7 +25,7 @@ export const DailyLeaderboard: React.FC = () => {
               {index + 1}. <strong>{entry.username}</strong>
             </span>
             <span>
-              {entry.xp} commit{entry.xp !== 1 && 's'}
+              {entry.xp} XP
             </span>
           </li>
         ))}
