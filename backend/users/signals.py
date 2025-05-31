@@ -42,16 +42,3 @@ def record_today_commits(sender, instance, **kwargs):
     cache.set('daily_commits_leaderboard', data, timeout=15 * 60)
 
 
-@receiver(post_save, sender=DailyContribution)
-def broadcast_single_commit_update(sender, instance, **kwargs):
-    layer = get_channel_layer()
-    async_to_sync(layer.group_send)(
-        "daily_commits",
-        {
-            "type": "daily_commits_update",
-            "data": [{
-                "username": instance.user.username,
-                "commits":  instance.commit_count,
-            }]
-        }
-    )
