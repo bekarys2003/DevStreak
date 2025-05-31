@@ -20,10 +20,6 @@ app.conf.beat_schedule = {
         'task': 'users.tasks.broadcast_streak_leaderboard_task',
         'schedule': crontab(minute='*/15'),
     },
-    'fetch-and-record-commits-every-15-minutes': {
-        'task': 'users.tasks.fetch_and_record_commits',
-        'schedule': crontab(minute='*/15'),
-    },
     'broadcast-midnight-xp-reset': {
         'task': 'users.tasks.broadcast_daily_commits_task',
         # midnight *in the timezone above*
