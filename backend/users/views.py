@@ -252,31 +252,59 @@ def compute_streak_leaderboard():
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def github_push_webhook(request):
-    logger.info("🔔 [Webhook] Got event: %s", request.META.get("HTTP_X_GITHUB_EVENT"))
+    # Identify which GitHub event we received:
+    event_type = request.META.get("HTTP_X_GITHUB_EVENT")
+    logger.info("🔔 [Webhook] Got event: %s", event_type)
 
-    gh_username = request.data['repository']['owner']['login']
-    profile = GitHubProfile.objects.get(user__username=gh_username)
+    # All webhook payloads will at least have repository.owner.login
+    try:
+        gh_username = request.data['repository']['owner']['login']
+        profile = GitHubProfile.objects.get(user__username=gh_username)
+    except (KeyError, GitHubProfile.DoesNotExist):
+        # If we can't find a matching user, just 404
+        return Response(status=404)
 
-    commits = request.data.get('commits', [])
-    count   = len(commits)
-    if count:
-        # 1) Base XP: 2 XP per commit
-        base_xp = count * 2
-        logger.info("[XP SYNC] %s: +%d XP, +%d commits",
-                    profile.user.username, base_xp, count)
-        record_today_xp(
-            profile.user,
-            xp_delta=base_xp,
-            commit_delta=count
-        )
+    # ─── 1) Handle a normal “push” ─────────────────────────────────────────────────
+    if event_type == "push":
+        commits = request.data.get("commits", [])
+        count   = len(commits)
+        if count > 0:
+            base_xp = count * 2
+            logger.info("[XP SYNC] %s: +%d XP, +%d commits",
+                        profile.user.username, base_xp, count)
+            # Award base XP for each commit:
+            record_today_xp(profile.user, xp_delta=base_xp, commit_delta=count)
 
-        # 2) Bonus XP: spaCy impact (0–3 per commit)
-        for c in commits:
-            msg = c.get("message", "")
-            bonus = analyze_commit_message_spacy(msg)
-            if bonus > 0:
-                logger.info("[MSG IMPACT] %s: +%d bonus XP for “%s”",
-                            profile.user.username, bonus, msg[:50])
-                record_today_xp(profile.user, xp_delta=bonus)
+            # Bonus XP via spaCy (0–3 per commit):
+            for c in commits:
+                msg = c.get("message", "") or ""
+                from .services import analyze_commit_message_spacy
+                bonus = analyze_commit_message_spacy(msg)
+                if bonus > 0:
+                    logger.info("[MSG IMPACT] %s: +%d bonus XP for “%s”",
+                                profile.user.username, bonus, msg[:50])
+                    record_today_xp(profile.user, xp_delta=bonus)
 
+        return Response(status=204)
+
+    # ─── 2) Handle a Pull Request event ──────────────────────────────────────────────
+    if event_type == "pull_request":
+        pr_data = request.data.get("pull_request", {})
+        action = request.data.get("action", "")
+
+        # 2.1) PR opened → +3 XP
+        if action == "opened":
+            logger.info("[PR OPENED] %s: +3 XP for opening a PR", profile.user.username)
+            record_today_xp(profile.user, xp_delta=3)
+
+        # 2.2) PR merged → +3 XP
+        # Note: GitHub sends “action”: "closed" even if someone just closed without merging.
+        # To detect an actual merge, we check `pull_request["merged"] == True`
+        elif action == "closed" and pr_data.get("merged", False):
+            logger.info("[PR MERGED] %s: +3 XP for merging a PR", profile.user.username)
+            record_today_xp(profile.user, xp_delta=3)
+
+        return Response(status=204)
+
+    # ─── 3) Ignore any other GitHub event types ────────────────────────────────────
     return Response(status=204)
