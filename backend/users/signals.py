@@ -22,7 +22,7 @@ def broadcast_single_commit_update(sender, instance, **kwargs):
             "type": "daily_commits_update",
             "data": [{
                 "username": instance.user.username,
-                "commits":  instance.commit_count,
+                "xp":  instance.xp,
             }]
         }
     )
