@@ -7,7 +7,7 @@ WORKDIR /app
 # 2) Copy requirements & install
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
-
+RUN python -m spacy download en_core_web_sm
 # 3) Copy in your Django code
 COPY . .
 

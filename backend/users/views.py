@@ -20,7 +20,7 @@ from core.github_api import GitHubAPIClient
 from datetime import datetime, timedelta
 from django.core.cache import cache
 from .models import DailyContribution
-from .services import record_today_xp
+from .services import record_today_xp, analyze_commit_message_spacy
 import logging
 from django.utils import timezone
 
@@ -277,16 +277,11 @@ def github_push_webhook(request):
             count
         )
         for c in commits:
-            msg = c.get('message', '').strip()
-            logger.info(
-                "[COMMIT MSG] %s: %s",
-                profile.user.username,
-                msg or "<no message>"
-            )
-        record_today_xp(
-            profile.user,
-            xp_delta=xp_award,
-            commit_delta=count
-        )
+             msg = c.get("message", "")
+             impact_score = analyze_commit_message_spacy(msg)
+             if impact_score:
+                 logger.info("[MSG IMPACT] %s: +%d bonus XP for “%s”",
+                             profile.user.username, impact_score, msg[:50])
+                 record_today_xp(profile.user, xp_delta=impact_score)
 
     return Response(status=204)

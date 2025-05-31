@@ -13,3 +13,4 @@ django-redis
 daphne
 celery
 redis
+spacy
