@@ -26,6 +26,7 @@ def broadcast_single_commit_update(sender, instance, **kwargs):
             }]
         }
     )
+
     board = compute_daily_xp_leaderboard()
     cache.set(CACHE_KEY_COMMITS, board, timeout=15 * 60)
 
