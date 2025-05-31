@@ -247,41 +247,36 @@ def compute_streak_leaderboard():
 
 # users/views.py
 
-from rest_framework.decorators import api_view, permission_classes
-from rest_framework.permissions    import AllowAny
-from rest_framework.response       import Response
-from .models                       import GitHubProfile
-from .services                     import record_today_xp
+# users/views.py (excerpt)
 
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def github_push_webhook(request):
-    # Debug incoming event
     logger.info("🔔 [Webhook] Got event: %s", request.META.get("HTTP_X_GITHUB_EVENT"))
 
     gh_username = request.data['repository']['owner']['login']
-    try:
-        profile = GitHubProfile.objects.get(user__username=gh_username)
-    except GitHubProfile.DoesNotExist:
-        return Response(status=404)
+    profile = GitHubProfile.objects.get(user__username=gh_username)
 
     commits = request.data.get('commits', [])
     count   = len(commits)
     if count:
-        xp_award = count * 2
-        # Debug XP sync
-        logger.info(
-            "[XP SYNC] %s: +%d XP, +%d commits",
-            profile.user.username,
-            count * 2,
-            count
+        # 1) Base XP: 2 XP per commit
+        base_xp = count * 2
+        logger.info("[XP SYNC] %s: +%d XP, +%d commits",
+                    profile.user.username, base_xp, count)
+        record_today_xp(
+            profile.user,
+            xp_delta=base_xp,
+            commit_delta=count
         )
+
+        # 2) Bonus XP: spaCy impact (0–3 per commit)
         for c in commits:
-             msg = c.get("message", "")
-             impact_score = analyze_commit_message_spacy(msg)
-             if impact_score:
-                 logger.info("[MSG IMPACT] %s: +%d bonus XP for “%s”",
-                             profile.user.username, impact_score, msg[:50])
-                 record_today_xp(profile.user, xp_delta=impact_score)
+            msg = c.get("message", "")
+            bonus = analyze_commit_message_spacy(msg)
+            if bonus > 0:
+                logger.info("[MSG IMPACT] %s: +%d bonus XP for “%s”",
+                            profile.user.username, bonus, msg[:50])
+                record_today_xp(profile.user, xp_delta=bonus)
 
     return Response(status=204)

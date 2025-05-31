@@ -5,18 +5,20 @@ import spacy
 
 
 
-
 def record_today_xp(user, xp_delta, commit_delta=0):
     """
-    Increment today’s XP by xp_delta, and optionally track raw commit_count.
+    Increment today’s xp by xp_delta, and optionally track raw commit_count.
     """
     today = timezone.localdate()
-    dc, _ = DailyContribution.objects.get_or_create(
-        user=user, date=today,
-        defaults={'commit_count': 0, 'xp': 0}
+    dc, created = DailyContribution.objects.get_or_create(
+        user=user,
+        date=today,
+        defaults={'commit_count': 0, 'xp': 0},
     )
-    dc.xp           += xp_delta
-    dc.commit_count += commit_delta
+
+    # *** Make sure these two lines actually add to the existing values ***
+    dc.xp           += xp_delta        # add xp_delta
+    dc.commit_count += commit_delta    # add commit_delta (if any)
     dc.save()
 
 
