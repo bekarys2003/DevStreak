@@ -23,4 +23,5 @@ urlpatterns = [
     path("admin/", admin.site.urls),
     path('api/hello/', HelloWorld.as_view()),
     path('api/', include('users.urls')),
+    path("api/teams/", include("teams.urls")),
 ]

@@ -49,6 +49,7 @@ INSTALLED_APPS = [
     'corsheaders',
     'channels',
     "users.apps.UsersConfig",
+    "teams.apps.TeamsConfig",
 ]
 
 MIDDLEWARE = [
