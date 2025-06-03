@@ -1,5 +1,6 @@
 // src/components/CreateTeamForm.tsx
-import React, { useState } from 'react'
+import React, { useState } from "react"
+import api from "../api/axios" // ← your Axios instance with interceptors
 
 interface CreateTeamFormProps {
   onTeamCreated: (teamName: string) => void
@@ -35,30 +36,35 @@ export const CreateTeamForm: React.FC<CreateTeamFormProps> = ({
 
     setLoading(true)
     try {
-      const resp = await fetch("/api/teams/create/", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${accessToken}`,
-        },
-        body: JSON.stringify({
-          name: trimmedName,
-          members: membersList,
-        }),
+      // Use `api.post` so the Axios interceptor adds `Authorization: Bearer <token>`
+      const response = await api.post("/teams/create/", {
+        name: trimmedName,
+        members: membersList,
       })
 
-      if (resp.status === 201) {
+      // If status is 201 (Created), Axios will not throw, so we’re here:
+      if (response.status === 201) {
         setSuccessMsg(`Team "${trimmedName}" created!`)
         setTeamName("")
         setMembersCSV("")
         onTeamCreated(trimmedName)
       } else {
-        const data = await resp.json()
-        setError(data.detail || "Failed to create team.")
+        // In practice, non-2xx would throw, but just in case:
+        setError(response.data.detail || "Failed to create team.")
       }
     } catch (err: any) {
-      console.error(err)
-      setError("Network error. Could not reach server.")
+      // Axios throws on non-2xx. Inspect `err.response`
+      if (err.response) {
+        const status = err.response.status
+        const detail = err.response.data?.detail
+        if (status === 401) {
+          setError("You must be logged in to create a team.")
+        } else {
+          setError(detail || `Error ${status}`)
+        }
+      } else {
+        setError("Network error. Could not reach server.")
+      }
     } finally {
       setLoading(false)
     }
@@ -67,6 +73,7 @@ export const CreateTeamForm: React.FC<CreateTeamFormProps> = ({
   return (
     <form onSubmit={handleSubmit} className="p-4 border rounded-md">
       <h3 className="text-lg font-semibold mb-2">Create New Team</h3>
+
       {error && (
         <div className="mb-2 text-red-600">
           {error}

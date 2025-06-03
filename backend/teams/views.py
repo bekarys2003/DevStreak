@@ -1,5 +1,3 @@
-# teams/views.py
-
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions    import IsAuthenticated
 from rest_framework.response       import Response
@@ -7,7 +5,7 @@ from django.contrib.auth import get_user_model
 from django.utils import timezone
 
 from .models import Team, TeamDailyContribution
-from users.models import DailyContribution  # we rely on the existing DailyContribution model
+from users.models import DailyContribution  # still needed for create_team signal logic
 
 User = get_user_model()
 
@@ -15,8 +13,8 @@ User = get_user_model()
 @permission_classes([IsAuthenticated])
 def create_team(request):
     """
-    POST body: { "name": "my_team", "members": ["alice", "bob"] }
-    Creates a Team named “my_team” and adds request.user plus any existing usernames.
+    POST /api/teams/create/  (body: {"name": "my_team", "members": ["alice", "bob"]})
+    Creates a new Team, adds request.user + any valid usernames.
     """
     name = request.data.get("name")
     members = request.data.get("members", [])
@@ -26,12 +24,9 @@ def create_team(request):
     if Team.objects.filter(name=name).exists():
         return Response({"detail": "Team already exists"}, status=400)
 
-    # 1) Create the team
     team = Team.objects.create(name=name)
-    # 2) Add the requester
     team.members.add(request.user)
 
-    # 3) Add any listed usernames (if they exist)
     for username in members:
         try:
             user = User.objects.get(username=username)
@@ -42,10 +37,13 @@ def create_team(request):
     return Response({"team": team.name}, status=201)
 
 
-
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
 def team_leaderboard(request, team_name):
+    """
+    GET /api/teams/<team_name>/leaderboard/
+    Returns [{"username": "...", "xp": ...}, …] from TeamDailyContribution for today.
+    """
     try:
         team = Team.objects.get(name=team_name)
     except Team.DoesNotExist:
@@ -57,21 +55,18 @@ def team_leaderboard(request, team_name):
     today = timezone.localdate()
     qs = (
         TeamDailyContribution.objects
-        .filter(date=today, team=team)
-        .select_related("user")
+          .filter(date=today, team=team)
+          .select_related("user")
     )
     entries = [{"username": dc.user.username, "xp": dc.xp} for dc in qs]
     entries.sort(key=lambda e: e["xp"], reverse=True)
     return Response(entries)
 
 
-
-
-
-
 def compute_daily_xp_leaderboard_for_team(team_name: str):
     """
-    Returns a list of {"username","xp"} for today’s XP *within this team*.
+    Returns a Python list [{"username": "...", "xp": ...}, …]
+    for today’s XP inside this team.
     """
     from .models import TeamDailyContribution
 
@@ -81,14 +76,11 @@ def compute_daily_xp_leaderboard_for_team(team_name: str):
     except Team.DoesNotExist:
         return []
 
-    # Query TeamDailyContribution (not DailyContribution)
     qs = (
         TeamDailyContribution.objects
-        .filter(date=today, team=team)
-        .select_related("user")
+          .filter(date=today, team=team)
+          .select_related("user")
     )
-
     entries = [{"username": dc.user.username, "xp": dc.xp} for dc in qs]
     entries.sort(key=lambda e: e["xp"], reverse=True)
     return entries
-
