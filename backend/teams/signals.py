@@ -1,42 +1,44 @@
-from channels.generic.websocket import AsyncJsonWebsocketConsumer
-from asgiref.sync import sync_to_async
+# teams/signals.py
 
-class TeamXPConsumer(AsyncJsonWebsocketConsumer):
-    async def connect(self):
-        # 1) Grab team_name from the URL kwargs
-        team_name = self.scope["url_route"]["kwargs"].get("team_name")
+from django.db.models.signals import post_save
+from django.dispatch import receiver
+from django.utils import timezone
 
-        # 2) If no valid team_name, reject
-        if not team_name:
-            await self.close(code=4001)
-            return
+from asgiref.sync import async_to_sync
+from channels.layers import get_channel_layer
 
-        # 3) Accept the WS handshake
-        await self.accept()
+from users.models import DailyContribution
+from .models import Team, TeamDailyContribution
 
-        # 4) Join the group "team_<team_name>"
-        self.group_name = f"team_{team_name}"
-        await self.channel_layer.group_add(self.group_name, self.channel_name)
+@receiver(post_save, sender=DailyContribution)
+def broadcast_and_record_team_xp(sender, instance, **kwargs):
+    """
+    Whenever any DailyContribution is saved (created or updated),
+    copy that XP into TeamDailyContribution for each team the user belongs to,
+    then send a "team_xp_update" event on that team’s channel group so any
+    open WebSocket consumers will re‐fetch the new XP.
+    """
+    user = instance.user
+    today = timezone.localdate()
+    layer = get_channel_layer()
 
-        # 5) Fetch initial team leaderboard from TeamDailyContribution
-        from .views import compute_daily_xp_leaderboard_for_team
-        initial_data = await sync_to_async(
-            compute_daily_xp_leaderboard_for_team
-        )(team_name)
+    # 1) For each team this user belongs to, upsert TeamDailyContribution:
+    for team in user.teams.all():
+        # Create or update the team‐scoped row
+        tdc, created = TeamDailyContribution.objects.get_or_create(
+            team=team,
+            user=user,
+            date=today,
+            defaults={"xp": instance.xp},
+        )
+        if not created:
+            # If it already existed, just overwrite xp
+            tdc.xp = instance.xp
+            tdc.save()
 
-        # 6) Send it immediately as JSON
-        await self.send_json(initial_data)
-
-    async def disconnect(self, close_code):
-        if hasattr(self, "group_name"):
-            await self.channel_layer.group_discard(self.group_name, self.channel_name)
-
-    async def team_xp_update(self, event):
-        # Re‐compute and resend whenever we get a "team_xp_update" event
-        team_name = self.scope["url_route"]["kwargs"].get("team_name")
-        from .views import compute_daily_xp_leaderboard_for_team
-
-        fresh_board = await sync_to_async(
-            compute_daily_xp_leaderboard_for_team
-        )(team_name)
-        await self.send_json(fresh_board)
+        # 2) Broadcast a "team_xp_update" event to the group named "team_<team_name>"
+        group_name = f"team_{team.name}"
+        async_to_sync(layer.group_send)(
+            group_name,
+            {"type": "team_xp_update"},
+        )
