@@ -10,6 +10,7 @@ import Home               from "./pages/Home"
 import Dashboard          from "./pages/Dashboard"
 import DailyLeaderboard   from "./pages/DailyLeaderboard"
 import { StreakLeaderboard } from "./pages/StreakLeaderboard"
+import ProfilePage        from './pages/ProfilePage'   // ← import it
 
 import CreateTeamPage         from "./pages/CreateTeamPage"
 import TeamLeaderboardPage    from "./pages/TeamLeaderboardPage"
@@ -42,6 +43,8 @@ const App: React.FC = () => {
           path="/team"
           element={<Navigate to="/team/create" replace />}
         />
+        <Route path="/profile" element={<ProfilePage />} />
+
       </Route>
     </Routes>
   )
