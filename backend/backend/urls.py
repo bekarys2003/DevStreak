@@ -24,4 +24,5 @@ urlpatterns = [
     path('api/hello/', HelloWorld.as_view()),
     path('api/', include('users.urls')),
     path("api/teams/", include("teams.urls")),
+    path('api/profile/', include('userprofile.urls')),
 ]

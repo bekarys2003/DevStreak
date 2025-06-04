@@ -50,7 +50,7 @@ INSTALLED_APPS = [
     'channels',
     "users.apps.UsersConfig",
     "teams.apps.TeamsConfig",
-    'userprofile',
+    'userprofile.apps.UserprofileConfig',
 ]
 
 MIDDLEWARE = [
